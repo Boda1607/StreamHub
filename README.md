@@ -59,9 +59,9 @@ To run this project locally, follow these steps:
 1.  **Clone the repository:**
     ```bash
     git clone [https://github.com/Boda1607/streamhub.git](https://github.com/Boda1607/streamhub.git)
-    cd tvflix-recommender
+    cd streamhub
     ```
-    *(Replace `your-username/tvflix-recommender.git` with your actual GitHub repository URL)*
+    
 
 2.  **Get a TMDB API Key:**
     * Go to [The Movie Database (TMDB) website](https://www.themoviedb.org/).
