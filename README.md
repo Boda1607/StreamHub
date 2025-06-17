@@ -11,7 +11,7 @@ Users can browse content by popular trends or specific genres, search for titles
 ## Live Demo
 
 You can explore a live demo of the application here:
-[YOUR_LIVE_DEMO_URL_HERE](YOUR_LIVE_DEMO_URL_HERE) *(Replace with your actual deployed URL)*
+[https://streamhubbb.netlify.app/](https://streamhubbb.netlify.app/) 
 
 ## Features
 
