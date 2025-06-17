@@ -34,15 +34,6 @@ You can explore a live demo of the application here:
 * **Loading Spinners & Placeholders:** Provides visual feedback during data fetching and displays informative messages for no results or API key issues.
 * **Confirmation Messages:** Brief pop-up notifications confirm when items are added to or removed from lists.
 
-## Screenshots
-
-*(Here, you would add more screenshots. You can drag and drop images directly into your GitHub README editor, or upload them to an `images/` folder in your repo and link them like the example below.)*
-
-![Tvflix Detail Page Screenshot](path/to/your/detail-page-screenshot.png)
-*(Example: `images/detail-page.png`)*
-
-![Tvflix Mobile Menu Screenshot](path/to/your/mobile-menu-screenshot.png)
-*(Example: `images/mobile-menu.png`)*
 
 ## Technologies Used
 
@@ -58,8 +49,8 @@ To run this project locally, follow these steps:
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/Boda1607/streamhub.git](https://github.com/Boda1607/streamhub.git)
-    cd streamhub
+    git clone [https://github.com/Boda1607/StreamHub.git](https://github.com/Boda1607/StreamHub.git)
+    cd StreamHub
     ```
     
 
