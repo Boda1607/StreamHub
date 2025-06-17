@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" sizes="180x180" href="1.png" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <style>
+        /* General Body and Container Styles - Dark Theme (IMDb-like blue-grey) */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0e13; /* Very dark blue-grey for general app background */
+            color: #e0e0e0; /* Light text color */
+            display: flex;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            overflow-x: hidden; /* Prevent horizontal scroll when sidebar is off-screen */
+        }
+
+        /* Main layout with sidebar and content */
+        .app-container {
+            display: flex;
+            width: 100%;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 250px;
+            background-color: #05070a; /* Even darker blue-grey for sidebar */
+            padding: 25px 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0; /* Prevent shrinking */
+            z-index: 10;
+            position: relative; /* Default position for desktop */
+            transition: transform 0.3s ease-in-out; /* Smooth transition for mobile slide */
+        }
+
+        .sidebar h2 {
+            color: #f0f0f0;
+            font-size: 1.5em;
+            padding: 0 25px 20px;
+            margin-top: 0;
+            border-bottom: 1px solid #1a1e24; /* Darker blue-grey border */
+            margin-bottom: 20px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li {
+            padding: 12px 25px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            font-size: 1.05em;
+            border-left: 4px solid transparent; /* For active state, adjusted to 4px */
+        }
+
+        .sidebar ul li:hover:not(.active) {
+            background-color: #1a1e24; /* Darker blue-grey hover */
+            color: #ffffff;
+        }
+
+        .sidebar ul li.active {
+            background-color: #11141a; /* Darker active blue-grey */
+            color: #4a90e2; /* Muted blue for active genre */
+            font-weight: bold;
+            border-left-color: #4a90e2; /* Adjusted to 4px */
+            border-left-width: 4px; /* Ensure the width is explicitly set */
+        }
+
+        /* New styles for primary navigation items (Movies, TV Shows) */
+        .sidebar .primary-nav-item {
+            padding: 15px 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #f0f0f0;
+            border-bottom: 1px solid #1a1e24;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .sidebar .primary-nav-item:hover {
+            background-color: #1a1e24;
+            color: #ffffff;
+        }
+
+        .sidebar .primary-nav-item.active {
+            color: #4a90e2;
+            background-color: #11141a;
+            border-left-color: #4a90e2; /* Match genre active style */
+            border-left-width: 4px; /* Ensure the width is explicitly set */
+        }
+
+        /* Adjust genre list padding when nested */
+        .sidebar .genre-list-nested {
+            padding-left: 20px; /* Indent genres under primary nav */
+            margin-top: 10px; /* Space from primary item */
+            border-bottom: none; /* Remove duplicate border */
+            padding-bottom: 0;
+        }
+        .sidebar .genre-list-nested li {
+            font-size: 0.95em; /* Slightly smaller font for nested genres */
+            padding: 8px 25px; /* Adjust padding */
+        }
+
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1; /* Take remaining space */
+            padding: 25px 35px;
+            display: flex;
+            flex-direction: column;
+            position: relative; /* For absolute positioning of detail page */
+            background-color: #11141a; /* Slightly lighter blue-grey for contrast */
+            transition: margin-left 0.3s ease-in-out; /* For shifting content on desktop if sidebar hidden */
+        }
+
+        /* Header / Search Bar */
+        .header {
+            display: flex;
+            flex-direction: row; /* Default to row on desktop */
+            align-items: center; /* Align items vertically in the center */
+            justify-content: space-between; /* Distribute items with space between them */
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #1a1e24;
+            flex-wrap: nowrap; /* Prevent wrapping on desktop */
+            gap: 20px; /* Space between the main header sections */
+        }
+        
+        /* New container for hamburger and mobile credit - hidden on desktop */
+        .hamburger-menu-and-mobile-credit {
+            display: none;
+        }
+
+        .logo {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4a90e2; /* Muted blue logo */
+            text-shadow: 1px 1px 3px rgba(74, 144, 226, 0.3);
+            flex-shrink: 0;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 15px; /* Space between buttons */
+            align-items: center;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .header-button {
+            background-color: #1e212b; /* Dark background */
+            color: #e0e0e0;
+            border: none;
+            border-radius: 25px; /* Rounded pill shape */
+            padding: 8px 15px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Space between icon and text */
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        .header-button:hover {
+            background-color: #2a2e3a;
+            color: #ffffff;
+        }
+
+        .header-button.active {
+            background-color: #4a90e2; /* Muted blue for active state */
+            color: white;
+        }
+
+        .search-bar {
+            position: relative;
+            width: 300px; /* Fixed width on desktop */
+            flex-shrink: 0; /* Prevent shrinking on desktop */
+            padding: 10px 15px 10px 40px; /* Input styling handled by input within */
+            border-radius: 25px;
+            background-color: #272a35;
+            color: #e0e0e0;
+            font-size: 1em;
+            box-sizing: border-box;
+            margin-left: auto; /* Push to the right on desktop */
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 0; /* Reset inner input padding */
+            border: none;
+            background-color: transparent;
+            color: inherit;
+            font-size: inherit;
+            outline: none;
+        }
+
+        .search-bar input::placeholder {
+            color: #777; /* Darker placeholder */
+        }
+
+        .search-bar input:focus {
+            background-color: #333642;
+            outline: none;
+        }
+
+        .search-bar .fa-search {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #777;
+        }
+
+        /* Hamburger menu for mobile */
+        .hamburger-menu {
+            display: none; /* Hidden by default on desktop */
+            font-size: 1.8em;
+            color: #f0f0f0;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 10; /* Ensure it's clickable */
+            flex-shrink: 0;
+        }
+
+        /* Close button for mobile sidebar */
+        .sidebar .close-sidebar-btn {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.8em;
+            color: #f0f0f0;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 5px;
+            z-index: 101; /* Above sidebar content */
+        }
+
+        /* Credit links styling */
+        .desktop-credit-link, .mobile-credit-link, .sidebar-credit-link {
+            font-size: 0.9em;
+            color: #777; /* Muted color */
+            white-space: nowrap; /* Keep on one line */
+            flex-shrink: 0;
+        }
+
+        .desktop-credit-link a, .mobile-credit-link a, .sidebar-credit-link a {
+            color: #4a90e2; /* Blue like the logo */
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .desktop-credit-link a:hover, .mobile-credit-link a:hover, .sidebar-credit-link a:hover {
+            color: #72aae6;
+        }
+
+        /* Default state: Desktop credit visible, mobile hidden */
+        .desktop-credit-link {
+            display: block; /* Visible on desktop */
+            margin: 0 auto; /* Centers it horizontally within remaining space */
+            flex-grow: 1; /* Allows it to take available space */
+            text-align: center; /* Center the text */
+        }
+        .mobile-credit-link {
+            display: none; /* Hidden on desktop */
+        }
+
+        /* Sidebar credit link specific styling */
+        .sidebar-credit-link {
+            font-size: 0.85em;
+            color: #777;
+            margin-top: 30px; /* Space from elements above */
+            padding: 0 25px; /* Match sidebar padding */
+            text-align: center;
+            flex-grow: 1; /* Push to bottom if space allows */
+            display: flex; /* Use flex to align content */
+            align-items: flex-end; /* Align to the bottom of the sidebar if there's extra space */
+            justify-content: center;
+        }
+
+        .sidebar-credit-link a {
+            color: inherit;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+        .sidebar-credit-link a:hover {
+            color: #c90a3d; /* Your theme color */
+        }
+
+
+
+        /* Movie Listing Section */
+        .movie-listing-section {
+            display: block;
+        }
+
+        .movie-listing-section h2 {
+            color: #f0f0f0;
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        /* Specific styling for 'You May Also Like' heading */
+        .movie-listing-section.you-may-also-like-section h2,
+        .user-list-page h2 { /* Also apply to user list grid */
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+
+
+        #movieGrid, .user-list-grid { /* Apply grid styles to user list grid as well */
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            padding-bottom: 30px;
+        }
+
+        .movie-card {
+            background-color: #1e212b; /* Darker card background */
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6); /* Stronger shadow */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 270px;
+            object-fit: cover;
+            border-bottom: 1px solid #2a2e3a;
+            background-color: #2a2e3a;
+        }
+
+        .movie-card .info {
+            padding: 10px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .movie-card h3 {
+            font-size: 1.1em;
+            margin: 5px 0;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        .movie-card .rating-year {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #aaa; /* Slightly darker */
+            margin-top: 5px;
+        }
+
+        .movie-card .rating-year .fa-star {
+            color: #f39c12;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #4a90e2; /* Muted blue spinner */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 50px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .placeholder-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-style: italic;
+            color: #777;
+            padding: 20px;
+        }
+
+        /* Load More Button */
+        .load-more-container {
+            text-align: center;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .load-more-button {
+            background-color: #c90a3d; /* Reddish-purple from image */
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px; /* More rounded */
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .load-more-button:hover {
+            background-color: #9b0830;
+            transform: translateY(-2px);
+        }
+
+        .load-more-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Movie Detail Page Styles */
+        .movie-detail-page {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: transparent; /* Changed to transparent, JavaScript will set image */
+            overflow-y: auto;
+            background-size: cover;
+            background-position: center;
+            transition: background-image 0.5s ease-in-out;
+            position: relative;
+        }
+
+        /* Overlay for detail page background */
+        .movie-detail-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75); /* Dark overlay to match IMDb, slightly more transparent */
+            backdrop-filter: blur(20px); /* Blur effect */
+            z-index: 1; /* Below content but above background image */
+        }
+
+        .detail-content-wrapper {
+            position: relative; /* Position content above the overlay */
+            z-index: 2;
+            padding: 25px 35px; /* Apply padding here */
+        }
+
+        .detail-back-button {
+            background: none;
+            border: none;
+            color: #4a90e2; /* Muted blue */
+            font-size: 1.1em;
+            cursor: pointer;
+            padding: 1px 0;
+            margin-bottom:-1px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 1px;
+            transition: color 0.2s ease;
+            position: relative; /* To be above overlay */
+            z-index: 3; /* Even higher z-index for button */
+        }
+
+        .detail-back-button:hover {
+            color: #72aae6;
+        }
+
+        .detail-header {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: flex-start;
+            position: relative; /* Ensure header content is above overlay */
+            z-index: 2;
+        }
+
+        .detail-poster {
+            width: 250px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7); /* Darker shadow */
+            flex-shrink: 0;
+        }
+
+        .detail-info {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .detail-info h1 {
+            font-size: 2.8em;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #f0f0f0;
+        }
+
+        .detail-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.1em;
+            color: #bbb;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .detail-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .detail-meta .rating {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .detail-plot {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #e0e0e0;
+            margin-bottom: 25px;
+        }
+
+        .detail-cast-director {
+            margin-bottom: 25px;
+        }
+
+        .detail-cast-director p {
+            margin: 8px 0;
+            font-size: 1em;
+            color: #ccc;
+        }
+
+        .detail-cast-director strong {
+            color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        /* Movie Detail Action Buttons */
+        .detail-action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .detail-action-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #1e212b; /* Dark background for circular buttons, matches cards */
+            color: #e0e0e0;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            border: 1px solid #2a2e3a; /* Subtle border */
+        }
+
+        .detail-action-button:hover {
+            background-color: #2a2e3a;
+            transform: translateY(-2px);
+        }
+
+        .detail-action-button.active { /* Class for active state */
+            background-color: #4a90e2; /* Muted blue for active, consistent with genre highlight */
+            color: white;
+            border-color: #4a90e2;
+        }
+
+        .detail-action-button.play-trailer-button {
+            border-radius: 25px; /* Pill shape */
+            padding: 0 20px;
+            width: auto; /* Auto width */
+            background-color: #c90a3d; /* Reddish-purple from image */
+            font-weight: bold;
+            font-size: 1em;
+            gap: 8px; /* Space between icon and text */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        .detail-action-button.play-trailer-button:hover {
+            background-color: #9b0830;
+        }
+
+
+        .trailer-section h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #f0f0f0;
+            border-bottom: 1px solid #333642;
+            padding-bottom: 10px;
+        }
+
+        /* Reuse movie-listing-section and #movieGrid for "You May Also Like" */
+        .you-may-also-like-detail {
+            margin-top: 40px;
+            position: relative; /* Ensure this section is above the overlay */
+            z-index: 2;
+        }
+        /* Styling for the grid within the detail page's "You May Also Like" section */
+        #detailYouMayAlsoLikeGrid {
+            display: flex; /* Changed from grid to flex */
+            flex-wrap: nowrap; /* Prevent wrapping */
+            overflow-x: auto; /* Enable horizontal scrolling */
+            gap: 20px; /* Consistent spacing */
+            padding-bottom: 30px; /* Maintain padding if needed for scrollbar */
+            /* Add scrollbar styling for better visibility */
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #4a90e2 #1e212b; /* Thumb and Track color Firefox */
+        }
+
+        #detailYouMayAlsoLikeGrid::-webkit-scrollbar {
+            height: 8px; /* Height of horizontal scrollbar */
+        }
+
+        #detailYouMayAlsoLikeGrid::-webkit-scrollbar-track {
+            background: #1e212b; /* Scrollbar track color */
+            border-radius: 10px;
+        }
+
+        #detailYouMayAlsoLikeGrid::-webkit-scrollbar-thumb {
+            background-color: #4a90e2; /* Scrollbar thumb color */
+            border-radius: 10px;
+            border: 2px solid #1e212b; /* Padding around thumb */
+        }
+
+        /* Ensure movie cards within the flex container don't shrink */
+        #detailYouMayAlsoLikeGrid .movie-card {
+            flex-shrink: 0; /* Prevent cards from shrinking */
+            width: 180px; /* Maintain a consistent width for scrolling items */
+        }
+
+
+        /* User List Page Styles */
+        .user-list-page {
+            display: none; /* Hidden by default */
+            padding: 25px 35px; /* Consistent with main-content padding */
+            flex-direction: column; /* To make h2 and grid stack */
+            flex-grow: 1;
+        }
+
+        /* Confirmation Message */
+        .confirmation-message {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(74, 144, 226, 0.9); /* Muted blue background for confirmations */
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            z-index: 1000; /* Above everything */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+        }
+        .confirmation-message.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Trailer Modal Styles */
+        .trailer-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9); /* Darker overlay for video */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it's on top */
+            display: none; /* Hidden by default */
+        }
+
+        .trailer-modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 900px; /* Max width for the video */
+            aspect-ratio: 16 / 9; /* Standard video aspect ratio */
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .trailer-modal-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .close-trailer-modal-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            z-index: 1001; /* Above iframe */
+            padding: 5px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: background-color 0.2s ease;
+        }
+
+        .close-trailer-modal-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Overlay for mobile sidebar */
+        .overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black */
+            z-index: 99; /* Below sidebar, above main content */
+        }
+
+        .overlay.active {
+            display: block; /* Show when sidebar is open */
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: row; /* Keep it row for the main content to be beside the off-screen sidebar */
+                position: relative; /* For proper positioning of fixed sidebar */
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -250px; /* Hide sidebar off-screen initially */
+                height: 100vh; /* Full viewport height */
+                width: 250px; /* Fixed width for the sidebar */
+                padding: 25px 0;
+                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.8);
+                z-index: 100; /* Ensure it's above everything else */
+                background-color: #05070a; /* Ensure background is solid */
+            }
+
+            .sidebar.open {
+                transform: translateX(250px); /* Slide in from left */
+            }
+            
+            .sidebar .close-sidebar-btn {
+                display: block; /* Show close button when sidebar is open */
+            }
+
+            .main-content {
+                width: 100%; /* Take full width */
+                margin-left: 0; /* No fixed margin on mobile */
+                padding: 20px;
+            }
+
+            .header { /* Main header container for mobile */
+                flex-direction: column; /* Stack top row and buttons */
+                align-items: flex-start; /* Align contents to start */
+                padding: 20px 0; /* Adjust padding for mobile header */
+                overflow-x: hidden; /* Prevent main header from scrolling */
+                gap: 15px; /* Space between header-top-row and header-buttons */
+            }
+
+            .header-top-row { /* New container for hamburger, credit, search for mobile */
+                display: flex;
+                align-items: center;
+                width: 100%; /* Take full width */
+                gap: 15px; /* Space between items in the top row */
+                overflow-x: auto; /* Enable horizontal scrolling for this row */
+                padding: 0 10px; /* Add some horizontal padding */
+                padding-bottom: 5px; /* Space for scrollbar */
+            }
+
+            .header-top-row::-webkit-scrollbar {
+                height: 5px;
+            }
+            .header-top-row::-webkit-scrollbar-track {
+                background: #1e212b;
+                border-radius: 10px;
+            }
+            .header-top-row::-webkit-scrollbar-thumb {
+                background-color: #4a90e2;
+                border-radius: 10px;
+            }
+
+            .hamburger-menu-and-mobile-credit {
+                display: flex; /* Show this container on mobile */
+                align-items: center;
+                gap: 15px; /* Space between hamburger and credit */
+            }
+
+            .hamburger-menu {
+                display: block; /* Ensure visible */
+                flex-shrink: 0; /* Don't shrink */
+            }
+
+            .mobile-credit-link {
+                display: block; /* Make credit link visible on mobile */
+                flex-shrink: 0; /* Don't shrink */
+                font-size: 0.8em;
+                margin-left: 0; /* Reset this to allow search bar to push it */
+            }
+
+            .desktop-credit-link {
+                display: none; /* Hide desktop credit */
+            }
+
+            .search-bar {
+                flex-grow: 1; /* Allow search bar to grow */
+                min-width: 150px; /* Ensure search bar is still usable if space is tight */
+                margin-left: auto; /* Push search bar to the right, before mobile-credit-link pushes *itself* right */
+            }
+
+            .header-buttons {
+                justify-content: center;
+                margin-top: 0; /* No top margin as it's a separate row now */
+                width: 100%; /* Ensure buttons are still full width and centered */
+                flex-wrap: wrap; /* Allow buttons to wrap if they don't fit */
+            }
+            
+            .detail-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 20px;
+            }
+            .detail-poster {
+                width: 180px;
+            }
+            .detail-info h1 {
+                font-size: 2em;
+            }
+            .detail-meta {
+                justify-content: center;
+                gap: 10px;
+            }
+            .detail-plot {
+                font-size: 0.95em;
+            }
+            .detail-cast-director p {
+                text-align: center;
+            }
+            .movie-detail-page {
+                padding: 20px;
+            }
+            #movieGrid, .user-list-grid { /* Apply to user list grid */
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Smaller cards for mobile */
+                gap: 15px;
+            }
+            /* IMPORTANT: The movie-card within #detailYouMayAlsoLikeGrid needs specific sizing for mobile to allow horizontal scrolling */
+            #detailYouMayAlsoLikeGrid .movie-card {
+                width: 140px; /* Smaller fixed width for mobile to ensure scrollability */
+            }
+            .movie-card img {
+                height: 220px; /* Adjust image height for smaller cards */
+            }
+            .detail-action-buttons {
+                justify-content: center;
+            }
+            
+        }
+
+        @media (max-width: 480px) {
+            .detail-info h1 {
+                font-size: 1.8em;
+            }
+            .detail-meta {
+                font-size: 0.9em;
+            }
+            .detail-plot {
+                font-size: 0.85em;
+            }
+            .trailer-modal-content {
+                width: 95%; /* Adjust for smaller screens */
+            }
+            /* Further reduce general padding on very small screens */
+            .main-content {
+                padding: 15px; /* Minimal padding for main content */
+            }
+   
+            .sidebar h2, .sidebar ul li, .sidebar .primary-nav-item {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            .search-bar {
+                width: 50%; /* Almost full width on small screens */
+            }
+            .sidebar-header {
+                padding: 12px 20px;
+            }
+
+            .logo {
+                font-size: 1.3em;
+            }
+
+            .close-sidebar-btn {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <button class="close-sidebar-btn" id="closeSidebarBtn"><i class="fas fa-times"></i></button>
+            <h2 class="logo">StreamHub</h2>
+            <ul id="mainNavList">
+                <li class="primary-nav-item active" data-content-type="movie">Movies</li>
+                <ul id="movieGenreList" class="genre-list-nested">
+                    <li class="active" data-genre-key="popular">Popular</li>
+                    <li data-genre-key="sci-fi">Sci-Fi</li>
+                    <li data-genre-key="horror">Horror</li>
+                    <li data-genre-key="fantasy">Fantasy</li>
+                    <li data-genre-key="thriller">Thriller</li>
+                    <li data-genre-key="comedy">Comedy</li>
+                    <li data-genre-key="drama">Drama</li>
+                    <li data-genre-key="mystery">Mystery</li>
+                    <li data-genre-key="action">Action</li>
+                    <li data-genre-key="adventure">Adventure</li>
+                    <li data-genre-key="animation">Animation</li>
+                    <li data-genre-key="crime">Crime</li>
+                    <li data-genre-key="documentary">Documentary</li>
+                    <li data-genre-key="history">History</li>
+                    <li data-genre-key="music">Music</li>
+                    <li data-genre-key="romance">Romance</li>
+                    <li data-genre-key="family">Family</li>
+                    <li data-genre-key="war">War</li>
+                </ul>
+                <li class="primary-nav-item" data-content-type="tv">TV Shows</li>
+                <ul id="tvGenreList" class="genre-list-nested">
+                    <li class="active" data-genre-key="popular">Popular</li>
+                    <li data-genre-key="action-adventure">Action & Adventure</li>
+                    <li data-genre-key="animation">Animation</li>
+                    <li data-genre-key="comedy">Comedy</li>
+                    <li data-genre-key="crime">Crime</li>
+                    <li data-genre-key="documentary">Documentary</li>
+                    <li data-genre-key="drama">Drama</li>
+                    <li data-genre-key="family">Family</li>
+                    <li data-genre-key="kids">Kids</li>
+                    <li data-genre-key="mystery">Mystery</li>
+                    <li data-genre-key="news">News</li>
+                    <li data-genre-key="reality">Reality</li>
+                    <li data-genre-key="sci-fi-fantasy">Sci-Fi & Fantasy</li>
+                    <li data-genre-key="soap">Soap</li>
+                    <li data-genre-key="talk">Talk</li>
+                    <li data-genre-key="war-politics">War & Politics</li>
+                    <li data-genre-key="western">Western</li>
+                </ul>
+                <!-- New element for sidebar credit -->
+                <div class="sidebar-credit-link">
+                    Made with ❤️ by <a href="https://abdelrahmanz.netlify.app/" target="_blank">&nbsp;AbdElRahman</a>
+                </div>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Common Header for Main and User Lists -->
+            <header class="header">
+                <div class="header-top-row"> <!-- New container for hamburger, search -->
+                    <i class="fas fa-bars hamburger-menu" id="hamburgerMenu"></i>
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="Search movies or TV shows...">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+                <div class="header-buttons">
+                    <button class="header-button" id="myListButton"><i class="fas fa-list"></i> My List</button>
+                    <button class="header-button" id="favoritesButton"><i class="fas fa-heart"></i> Favorites</button>
+                    <button class="header-button" id="bookmarksButton"><i class="fas fa-bookmark"></i> Bookmarks</button>
+                </div>
+            </header>
+
+            <!-- Movie Listing Section (Default View) -->
+            <section class="movie-listing-section" id="movieListingView">
+                <h2 id="sectionTitle">Popular Movies</h2>
+                <div id="movieGrid">
+                    <div class="loading-spinner"></div>
+                </div>
+
+                <div class="load-more-container">
+                    <button id="loadMoreButton" class="load-more-button">Load More</button>
+                </div>
+
+                <!-- Removed "You May Also Like" section from home screen -->
+            </section>
+
+            <!-- Movie Detail Page Section -->
+            <section class="movie-detail-page" id="movieDetailView">
+                <button class="detail-back-button" id="backToListButton">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </button>
+
+                <div class="detail-content-wrapper">
+                    <div class="loading-spinner"></div> <!-- Initial loading spinner for detail page -->
+                </div>
+            </section>
+
+            <!-- User List Page Section (for My List, Favorites, Bookmarks) -->
+            <section class="user-list-page" id="userListPage">
+                <button class="detail-back-button" id="backToMainFromListButton">
+                    <i class="fas fa-arrow-left"></i> Back to Main
+                </button>
+                <h2 id="userListTitle"></h2>
+                <div id="userListGrid" class="user-list-grid">
+                    <!-- Movies from user's lists will be rendered here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Confirmation Message Element -->
+    <div id="confirmationMessage" class="confirmation-message"></div>
+
+    <!-- Trailer Pop-up Modal -->
+    <div id="trailerModal" class="trailer-modal">
+        <div class="trailer-modal-content">
+            <button class="close-trailer-modal-button" id="closeTrailerModalButton">&times;</button>
+            <iframe id="youtubeIframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-mdeia; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay"></div>
+    <script>
+
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => {
+            console.log('Service Worker registered:', reg.scope);
+            })
+            .catch(err => {
+            console.log('Service Worker registration failed:', err);
+            });
+        });
+        }   
+
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('searchInput');
+            const mainNavList = document.getElementById('mainNavList'); // New main nav list
+            const movieGenreList = document.getElementById('movieGenreList'); // Renamed genreList
+            const tvGenreList = document.getElementById('tvGenreList'); // New TV genre list
+            const movieGrid = document.getElementById('movieGrid');
+            const sectionTitle = document.getElementById('sectionTitle');
+            const movieListingView = document.getElementById('movieListingView');
+            const movieDetailView = document.getElementById('movieDetailView');
+            const userListPage = document.getElementById('userListPage');
+            const userListGrid = document.getElementById('userListGrid');
+            const userListTitle = document.getElementById('userListTitle');
+
+            const backToListButton = document.getElementById('backToListButton');
+            const backToMainFromListButton = document.getElementById('backToMainFromListButton');
+            const detailContentWrapper = movieDetailView.querySelector('.detail-content-wrapper');
+            const loadMoreButton = document.getElementById('loadMoreButton');
+            const confirmationMessage = document.getElementById('confirmationMessage');
+
+            const myListButton = document.getElementById('myListButton');
+            const favoritesButton = document.getElementById('favoritesButton');
+            const bookmarksButton = document.getElementById('bookmarksButton');
+
+            const trailerModal = document.getElementById('trailerModal');
+            const youtubeIframe = document.getElementById('youtubeIframe');
+            const closeTrailerModalButton = document.getElementById('closeTrailerModalButton');
+
+            // New elements for mobile sidebar
+            const sidebar = document.getElementById('sidebar');
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            const overlay = document.getElementById('overlay');
+
+
+            // TMDB API Key - REPLACE WITH YOUR ACTUAL KEY
+            const TMDB_API_KEY = 'YOUR_API_KEY';
+            const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+            const TMDB_BACKDROP_BASE_URL = 'https://www.themoviedb.org/t/p/w1280'; // Higher resolution for background
+            const TMDB_POSTER_PLACEHOLDER = 'https://placehold.co/180x270/1a1a1a/e0e0e0?text=No+Poster';
+            const TMDB_DETAIL_POSTER_PLACEHOLDER = 'https://placehold.co/250x375/1a1a1a/e0e0e0?text=No+Poster';
+
+            // TMDB Genre ID mapping for Movies
+            const TMDB_MOVIE_GENRES = {
+                'action': 28, 'adventure': 12, 'animation': 16, 'comedy': 35, 'crime': 80,
+                'documentary': 99, 'drama': 18, 'family': 10751, 'fantasy': 14, 'history': 36,
+                'horror': 27, 'music': 10402, 'mystery': 9648, 'romance': 10749, 'sci-fi': 878,
+                'thriller': 53, 'war': 10752, 'western': 37
+            };
+
+            // TMDB Genre ID mapping for TV Shows (obtained from Google Search)
+            const TMDB_TV_GENRES = {
+                'action-adventure': 10759, 'animation': 16, 'comedy': 35, 'crime': 80,
+                'documentary': 99, 'drama': 18, 'family': 10751, 'kids': 10762, 'mystery': 9648,
+                'news': 10763, 'reality': 10764, 'sci-fi-fantasy': 10765, 'soap': 10766,
+                'talk': 10767, 'war-politics': 10768, 'western': 37, 'popular': 'popular' // Added 'popular' for consistency
+            };
+
+
+            // Local database for books (not handled by TMDB API) - Renamed to distinguish
+            const localNonTMDBContent = {
+                'classic novel': [
+                    { type: 'Book', title: 'Pride and Prejudice by Jane Austen' },
+                    { type: 'Book', title: '1984 by George Orwell' },
+                    { type: 'Book', title: 'To Kill a Mockingbird by Harper Lee' },
+                    { type: 'Book', title: 'The Great Gatsby by F. Scott Fitzgerald' }
+                ],
+            };
+
+            let currentContentType = 'movie'; // 'movie' or 'tv'
+            let currentActiveGenreOrType = 'popular'; // 'popular' for movies/tv, or a genre key
+            let currentPage = 1; // Current page for the main content grid
+            let currentSearchQuery = ''; // Current search query
+
+            // --- Local Storage Helper Functions ---
+            // Stores items as { id: contentId, type: contentType }
+            function getLocalStorageList(key) {
+                try {
+                    const list = JSON.parse(localStorage.getItem(key));
+                    return Array.isArray(list) ? list : [];
+                } catch (e) {
+                    console.error(`Error parsing localStorage key "${key}":`, e);
+                    return [];
+                }
+            }
+
+            // Expects contentItem to be an object { id: ..., type: ... }
+            function setLocalStorageList(key, list) {
+                localStorage.setItem(key, JSON.stringify(list));
+            }
+
+            // Expects contentId (number) and contentType (string: 'movie' or 'tv')
+            function toggleLocalStorageItem(key, contentId, contentType) {
+                let list = getLocalStorageList(key);
+                // Check if an item with the same ID AND type already exists
+                const index = list.findIndex(item => item.id === contentId && item.type === contentType);
+                
+                if (index > -1) {
+                    list.splice(index, 1); // Remove if exists
+                    setLocalStorageList(key, list);
+                    return false; // Item removed
+                } else {
+                    list.push({ id: contentId, type: contentType }); // Add with type
+                    setLocalStorageList(key, list);
+                    return true; // Item added
+                }
+            }
+
+            // --- View Management ---
+            function hideAllViews() {
+                movieListingView.style.display = 'none';
+                movieDetailView.style.display = 'none';
+                userListPage.style.display = 'none';
+            }
+
+            function showListView() {
+                hideAllViews();
+                movieListingView.style.display = 'block';
+                movieDetailView.style.backgroundImage = 'none'; // Clear background when leaving detail view
+            }
+
+            function showDetailView() {
+                hideAllViews();
+                movieDetailView.style.display = 'block';
+                window.scrollTo(0, 0); // Scroll to top when detail page opens
+            }
+
+            async function showUserListView(listKey, title) {
+                hideAllViews();
+                userListPage.style.display = 'flex'; // Use flex to stack title and grid
+                userListTitle.textContent = title;
+                userListGrid.innerHTML = ''; // Clear grid immediately
+
+                const storedContentItems = getLocalStorageList(listKey);
+
+                if (storedContentItems.length === 0) {
+                    userListGrid.innerHTML = `<p class="placeholder-message">Your ${title.toLowerCase()} is empty.</p>`;
+                    return;
+                }
+
+                userListGrid.innerHTML = '<div class="loading-spinner"></div>'; // Show loading for user lists
+
+                const contentPromises = storedContentItems.map(item => fetchContentDetailsById(item.id, item.type));
+                const content = (await Promise.all(contentPromises)).filter(item => item !== null);
+
+                if (content.length > 0) {
+                    userListGrid.innerHTML = ''; // Clear spinner before rendering cards
+                    // Pass each item's detected media_type for proper rendering in user list
+                    renderContentCards(content, null, userListGrid); // Passing null for contentType, will use item.media_type
+                } else {
+                    userListGrid.innerHTML = '<p class="placeholder-message">Could not load items from your list. Some items might be invalid or have been removed from TMDB.</p>';
+                }
+            }
+
+            /**
+             * Displays a transient confirmation message.
+             * @param {string} message The message to display.
+             */
+            function showConfirmationMessage(message) {
+                confirmationMessage.textContent = message;
+                confirmationMessage.classList.add('show');
+                setTimeout(() => {
+                    confirmationMessage.classList.remove('show');
+                }, 2000); // Message disappears after 2 seconds
+            }
+
+            // --- Event Listeners ---
+
+            backToListButton.addEventListener('click', () => {
+                showListView();
+            });
+
+            backToMainFromListButton.addEventListener('click', () => {
+                showListView();
+            });
+
+            myListButton.addEventListener('click', () => showUserListView('myList', 'My List'));
+            favoritesButton.addEventListener('click', () => showUserListView('favorites', 'Favorites'));
+            bookmarksButton.addEventListener('click', () => showUserListView('bookmarks', 'Bookmarks'));
+
+            // Mobile sidebar toggle
+            hamburgerMenu.addEventListener('click', () => {
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            });
+
+            closeSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+
+
+            mainNavList.addEventListener('click', async (event) => {
+                const target = event.target;
+                let newActiveGenreOrType = 'popular'; // Default to popular for new content type
+
+                // Close sidebar after selection on mobile
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                }
+
+                // Handle primary navigation clicks (Movies, TV Shows)
+                if (target.classList.contains('primary-nav-item')) {
+                    const selectedContentType = target.dataset.contentType;
+
+                    // Remove 'active' from current primary item and any active genre
+                    mainNavList.querySelectorAll('.primary-nav-item').forEach(item => item.classList.remove('active'));
+                    movieGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+                    tvGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+
+                    target.classList.add('active'); // Add 'active' to clicked primary item
+
+                    // Toggle visibility of genre lists
+                    if (selectedContentType === 'movie') {
+                        movieGenreList.style.display = 'block';
+                        tvGenreList.style.display = 'none';
+                        // Activate 'Popular' genre under movies by default
+                        const popularMovieGenre = movieGenreList.querySelector(`[data-genre-key="popular"]`);
+                        if (popularMovieGenre) {
+                            popularMovieGenre.classList.add('active');
+                        }
+                    } else if (selectedContentType === 'tv') {
+                        movieGenreList.style.display = 'none';
+                        tvGenreList.style.display = 'block';
+                        // Activate 'Popular' genre under TV Shows by default
+                        const popularTvGenre = tvGenreList.querySelector(`[data-genre-key="popular"]`);
+                        if (popularTvGenre) {
+                            popularTvGenre.classList.add('active');
+                        }
+                    }
+
+                    // Reset internal state
+                    currentContentType = selectedContentType;
+                    currentActiveGenreOrType = newActiveGenreOrType;
+                    currentSearchQuery = '';
+                    currentPage = 1;
+                    searchInput.value = '';
+
+                    sectionTitle.textContent = formatContentTitle(currentContentType, currentActiveGenreOrType);
+                    await fetchAndDisplayContent(currentContentType, currentActiveGenreOrType, movieGrid, true);
+                    showListView();
+
+                } else if (target.tagName === 'LI' && target.closest('.genre-list-nested')) { // Handle genre clicks under Movies/TV Shows
+                    // Determine which genre list was clicked
+                    const parentUl = target.closest('ul');
+                    const selectedContentType = parentUl.id === 'movieGenreList' ? 'movie' : 'tv';
+
+                    // Ensure the correct primary nav item is active
+                    const primaryNavItem = mainNavList.querySelector(`[data-content-type="${selectedContentType}"]`);
+                    if (primaryNavItem && !primaryNavItem.classList.contains('active')) {
+                        mainNavList.querySelectorAll('.primary-nav-item').forEach(item => item.classList.remove('active'));
+                        primaryNavItem.classList.add('active');
+                    }
+
+                    // Remove 'active' from all genres in both lists
+                    movieGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+                    tvGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+
+                    target.classList.add('active'); // Add 'active' to clicked genre
+
+                    // Toggle visibility of genre lists
+                    if (selectedContentType === 'movie') {
+                        movieGenreList.style.display = 'block';
+                        tvGenreList.style.display = 'none';
+                    } else {
+                        movieGenreList.style.display = 'none';
+                        tvGenreList.style.display = 'block';
+                    }
+
+                    newActiveGenreOrType = target.dataset.genreKey;
+
+                    // Reset internal state
+                    currentContentType = selectedContentType;
+                    currentActiveGenreOrType = newActiveGenreOrType;
+                    currentSearchQuery = '';
+                    currentPage = 1;
+                    searchInput.value = '';
+
+                    sectionTitle.textContent = formatContentTitle(currentContentType, currentActiveGenreOrType);
+                    await fetchAndDisplayContent(currentContentType, currentActiveGenreOrType, movieGrid, true);
+                    showListView();
+                }
+            });
+
+
+            let searchTimeout;
+            searchInput.addEventListener('keyup', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(async () => {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        // Clear active states in sidebar
+                        mainNavList.querySelectorAll('.primary-nav-item').forEach(item => item.classList.remove('active'));
+                        movieGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+                        tvGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+                        
+                        movieGenreList.style.display = 'none'; // Hide genres during search
+                        tvGenreList.style.display = 'none';
+
+                        currentSearchQuery = query; // Update current search query
+                        currentPage = 1; // Reset page to 1 for new search
+                        sectionTitle.textContent = `Search Results for "${query}"`;
+                        // Default search type based on `currentContentType` before search, or 'multi' if no specific type was active
+                        const searchTargetType = currentContentType || 'multi'; // Use current type if selected, else multi
+                        await searchAndDisplayContent(query, movieGrid, true, searchTargetType); 
+                        showListView();
+                    } else {
+                        // If search query is cleared, go back to currently active primary nav item or default to movies/popular
+                        const activePrimary = mainNavList.querySelector('.primary-nav-item.active');
+                        if (activePrimary) {
+                            currentContentType = activePrimary.dataset.contentType;
+                            if (currentContentType === 'movie') {
+                                const popularMovieGenre = movieGenreList.querySelector(`[data-genre-key="popular"]`);
+                                if (popularMovieGenre) {
+                                    movieGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+                                    popularMovieGenre.classList.add('active');
+                                }
+                                movieGenreList.style.display = 'block';
+                                tvGenreList.style.display = 'none';
+                                currentActiveGenreOrType = 'popular';
+                            } else { // currentContentType === 'tv'
+                                const popularTvGenre = tvGenreList.querySelector(`[data-genre-key="popular"]`);
+                                if (popularTvGenre) {
+                                    tvGenreList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+                                    popularTvGenre.classList.add('active');
+                                }
+                                movieGenreList.style.display = 'none';
+                                tvGenreList.style.display = 'block';
+                                currentActiveGenreOrType = 'popular';
+                            }
+                        } else { // Default to movies/popular if no primary item was active
+                            currentContentType = 'movie';
+                            currentActiveGenreOrType = 'popular';
+                            mainNavList.querySelector('[data-content-type="movie"]').classList.add('active');
+                            movieGenreList.querySelector(`[data-genre-key="popular"]`).classList.add('active');
+                            movieGenreList.style.display = 'block';
+                            tvGenreList.style.display = 'none';
+                        }
+                        currentSearchQuery = '';
+                        currentPage = 1;
+                        sectionTitle.textContent = formatContentTitle(currentContentType, currentActiveGenreOrType);
+                        await fetchAndDisplayContent(currentContentType, currentActiveGenreOrType, movieGrid, true);
+                        showListView();
+                    }
+                }, 500);
+            });
+
+            // Load More button listener
+            loadMoreButton.addEventListener('click', async () => {
+                currentPage++;
+                if (currentSearchQuery) {
+                    const searchTargetType = currentContentType || 'multi';
+                    await searchAndDisplayContent(currentSearchQuery, movieGrid, false, searchTargetType); // False to append
+                } else {
+                    await fetchAndDisplayContent(currentContentType, currentActiveGenreOrType, movieGrid, false); // False to append
+                }
+            });
+
+
+            // Consolidated event listener for main content grid and user list grid
+            document.querySelectorAll('#movieGrid, #userListGrid').forEach(grid => {
+                grid.addEventListener('click', async (event) => {
+                    const contentCard = event.target.closest('.movie-card');
+                    if (contentCard && contentCard.dataset.contentId && contentCard.dataset.contentType) {
+                        const contentId = contentCard.dataset.contentId;
+                        const type = contentCard.dataset.contentType;
+                        await fetchAndDisplayContentDetails(contentId, type);
+                    }
+                });
+            });
+
+            // Event listener for closing the trailer modal
+            closeTrailerModalButton.addEventListener('click', () => {
+                trailerModal.style.display = 'none';
+                youtubeIframe.src = ''; // Stop video playback
+            });
+
+            // Optional: Close modal if clicking outside the video
+            trailerModal.addEventListener('click', (event) => {
+                if (event.target === trailerModal) {
+                    trailerModal.style.display = 'none';
+                    youtubeIframe.src = ''; // Stop video playback
+                }
+            });
+
+
+            // --- TMDB API Functions ---
+
+            /**
+             * Fetches a list of movies or TV shows based on type and genre/popularity from TMDB.
+             * @param {string} contentType 'movie' or 'tv'.
+             * @param {string} category 'popular' or a genre key (e.g., 'sci-fi').
+             * @param {HTMLElement} targetGrid The DOM element to render content into.
+             * @param {boolean} clearGrid If true, clears the grid before rendering.
+             */
+            async function fetchAndDisplayContent(contentType, category, targetGrid, clearGrid = true) {
+                if (clearGrid) {
+                    targetGrid.innerHTML = '<div class="loading-spinner"></div>';
+                    loadMoreButton.style.display = 'none'; // Hide load more until results
+                } else {
+                    targetGrid.insertAdjacentHTML('beforeend', '<div class="loading-spinner temp-spinner"></div>');
+                }
+
+
+                if (!TMDB_API_KEY || TMDB_API_KEY === 'YOUR_TMDB_API_KEY') {
+                    targetGrid.innerHTML = `<p class="placeholder-message">TMDB API Key is missing or invalid. Please get one from <a href="https://www.themoviedb.org/signup" target="_blank">https://www.themoviedb.org/signup</a> and update the code.</p>`;
+                    loadMoreButton.style.display = 'none';
+                    return;
+                }
+
+                let url;
+                let genreMap = {};
+                let displayCategory = category; // To use in placeholder message if genre not found
+
+                if (contentType === 'movie') {
+                    genreMap = TMDB_MOVIE_GENRES;
+                    url = `https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_API_KEY}&language=en-US&page=${currentPage}`; // Default popular movies
+                    if (category !== 'popular' && genreMap[category]) {
+                        url = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=${currentPage}&with_genres=${genreMap[category]}`;
+                    } else if (category in localNonTMDBContent) {
+                        displayLocalBooks(localNonTMDBContent[category], targetGrid, clearGrid);
+                        loadMoreButton.style.display = 'none'; // No load more for local books
+                        return;
+                    }
+                } else if (contentType === 'tv') {
+                    genreMap = TMDB_TV_GENRES;
+                    url = `https://api.themoviedb.org/3/tv/popular?api_key=${TMDB_API_KEY}&language=en-US&page=${currentPage}`; // Default popular TV shows
+                    if (category !== 'popular' && genreMap[category]) {
+                        url = `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=${currentPage}&with_genres=${genreMap[category]}`;
+                    }
+                } else {
+                     targetGrid.innerHTML = `<p class="placeholder-message">Invalid content type: "${contentType}".</p>`;
+                     loadMoreButton.style.display = 'none';
+                     return;
+                }
+
+                if (category !== 'popular' && !genreMap[category] && !(category in localNonTMDBContent)) {
+                    // This means a specific genre was selected but not found in the map
+                    // Fallback to popular, but inform the user.
+                    const contentTypeName = contentType === 'movie' ? 'movie' : 'TV show';
+                    targetGrid.innerHTML = `<p class="placeholder-message">No specific TMDB API integration for ${contentTypeName} genre: "${displayCategory}". Showing popular ${contentTypeName}s instead.</p>`;
+                    // Keep the URL as popular for the fallback fetch
+                    if (contentType === 'movie') {
+                        url = `https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_API_KEY}&language=en-US&page=${currentPage}`;
+                    } else {
+                        url = `https://api.themoviedb.org/3/tv/popular?api_key=${TMDB_API_KEY}&language=en-US&page=${currentPage}`;
+                    }
+                }
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (document.querySelector('.temp-spinner')) {
+                        document.querySelector('.temp-spinner').remove();
+                    }
+
+                    if (data.results && data.results.length > 0) {
+                        if (clearGrid) {
+                            targetGrid.innerHTML = ''; // Clear only if starting new search/genre
+                        }
+                        // Pass the `contentType` determined from the function call, not from individual item
+                        renderContentCards(data.results, contentType, targetGrid);
+                        if (data.total_pages > currentPage) {
+                            loadMoreButton.style.display = 'block';
+                        } else {
+                            loadMoreButton.style.display = 'none';
+                        }
+                    } else if (clearGrid) { // Only show no results if clearing grid and nothing found
+                        targetGrid.innerHTML = `<p class="placeholder-message">No ${contentType === 'movie' ? 'movies' : 'TV shows'} found for this category.</p>`;
+                        loadMoreButton.style.display = 'none';
+                    } else { // No more results to load
+                        loadMoreButton.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error(`Error fetching ${contentType} for ${category}:`, error);
+                    targetGrid.innerHTML = '<p class="placeholder-message">Failed to load content. Please try again later.</p>';
+                    loadMoreButton.style.display = 'none';
+                }
+            }
+
+
+            /**
+             * Searches for movies or TV shows by query and displays them.
+             * @param {string} query The search query.
+             * @param {HTMLElement} targetGrid The DOM element to render search results into.
+             * @param {boolean} clearGrid If true, clears the grid before rendering.
+             * @param {string} searchScopeType 'movie', 'tv', or 'multi'. Determines which TMDB search endpoint to hit.
+             */
+            async function searchAndDisplayContent(query, targetGrid, clearGrid = true, searchScopeType = 'multi') {
+                if (clearGrid) {
+                    targetGrid.innerHTML = '<div class="loading-spinner"></div>';
+                    loadMoreButton.style.display = 'none';
+                } else {
+                    targetGrid.insertAdjacentHTML('beforeend', '<div class="loading-spinner temp-spinner"></div>');
+                }
+
+                if (!TMDB_API_KEY || TMDB_API_KEY === 'YOUR_TMDB_API_KEY') {
+                    targetGrid.innerHTML = `<p class="placeholder-message">TMDB API Key is missing or invalid. Cannot perform search. Please refer to instructions.</p>`;
+                    loadMoreButton.style.display = 'none';
+                    return;
+                }
+
+                const encodedQuery = encodeURIComponent(query);
+                let url;
+                let effectiveContentTypeForRendering = searchScopeType; // Used to hint renderContentCards about the expected type
+
+                // If the searchScopeType is 'movie' or 'tv', use the specific search endpoint.
+                // Otherwise, use 'multi' to search both.
+                if (searchScopeType === 'movie') {
+                    url = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodedQuery}&language=en-US&page=${currentPage}&include_adult=false`;
+                } else if (searchScopeType === 'tv') {
+                    url = `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodedQuery}&language=en-US&page=${currentPage}&include_adult=false`;
+                } else { // searchScopeType is 'multi' or unexpected
+                    url = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodedQuery}&language=en-US&page=${currentPage}&include_adult=false`;
+                    effectiveContentTypeForRendering = 'multi'; // Important: if multi-search, let renderContentCards figure out media_type per item
+                }
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (document.querySelector('.temp-spinner')) {
+                        document.querySelector('.temp-spinner').remove();
+                    }
+
+                    let results = data.results || [];
+                    
+                    // Filter out 'person' results if multi-searching, and ensure media_type is set for all items
+                    results = results.map(item => {
+                        if (!item.media_type) {
+                            // Assign media_type based on common properties if missing (e.g., from specific search endpoints)
+                            if (item.title && !item.first_air_date) item.media_type = 'movie'; // Likely a movie if it has 'title' but not 'first_air_date'
+                            else if (item.name && !item.release_date) item.media_type = 'tv'; // Likely a TV show if it has 'name' but not 'release_date'
+                            else item.media_type = 'unknown'; // Fallback
+                        }
+                        return item;
+                    }).filter(item => item.media_type !== 'person' && item.media_type !== 'unknown');
+
+
+                    // If the search was initiated from a specific "Movies" or "TV Shows" section
+                    // (meaning `searchScopeType` is 'movie' or 'tv'), we should filter the results
+                    // to only show that content type, even if the multi-search endpoint returned others.
+                    if (searchScopeType === 'movie' && effectiveContentTypeForRendering === 'multi') {
+                        // If multi-search, but user was in 'movies' context, filter for movies.
+                        results = results.filter(item => item.media_type === 'movie');
+                    } else if (searchScopeType === 'tv' && effectiveContentTypeForRendering === 'multi') {
+                        // If multi-search, but user was in 'tv' context, filter for TV shows.
+                        results = results.filter(item => item.media_type === 'tv');
+                    }
+                    // If effectiveContentTypeForRendering is already 'movie' or 'tv' (meaning specific search endpoint was hit),
+                    // then no further filtering by type is strictly necessary here as the API already returned that type.
+
+
+                    if (results.length > 0) {
+                        if (clearGrid) {
+                            targetGrid.innerHTML = '';
+                        }
+                        // Pass the `effectiveContentTypeForRendering`. If 'multi', renderContentCards will rely on item.media_type.
+                        renderContentCards(results, effectiveContentTypeForRendering, targetGrid);
+                        if (data.total_pages > currentPage) {
+                            loadMoreButton.style.display = 'block';
+                        } else {
+                            loadMoreButton.style.display = 'none';
+                        }
+                    } else if (clearGrid) {
+                        targetGrid.innerHTML = `<p class="placeholder-message">No ${searchScopeType === 'movie' ? 'movies' : searchScopeType === 'tv' ? 'TV shows' : 'content'} found matching your search.</p>`;
+                        loadMoreButton.style.display = 'none';
+                    } else {
+                        loadMoreButton.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error(`Error searching for ${searchScopeType} content with query "${query}":`, error);
+                    targetGrid.innerHTML = '<p class="placeholder-message">Failed to perform search. Please try again later.</p>';
+                    loadMoreButton.style.display = 'none';
+                }
+            }
+
+
+            /**
+             * Fetches details for a single movie or TV show by its ID.
+             * Used for building user lists and detail pages.
+             * @param {string} contentId The TMDB ID of the content.
+             * @param {string} contentType The type of content ('movie' or 'tv').
+             * @returns {Promise<Object|null>} Content object or null if error.
+             */
+            async function fetchContentDetailsById(contentId, contentType) {
+                if (!TMDB_API_KEY || TMDB_API_KEY === 'YOUR_TMDB_API_KEY') {
+                    console.error("TMDB API Key is missing or invalid.");
+                    return null;
+                }
+                const url = `https://api.themoviedb.org/3/${contentType}/${contentId}?api_key=${TMDB_API_KEY}&language=en-US`;
+                try {
+                    const response = await fetch(url);
+                    const content = await response.json();
+                    if (content.id) {
+                        content.media_type = contentType; // Add media_type for consistent handling
+                        return content;
+                    }
+                    return null;
+                } catch (error) {
+                    console.error(`Error fetching ${contentType} details for ID ${contentId}:`, error);
+                    return null;
+                }
+            }
+
+            /**
+             * Fetches and displays details for a specific movie/TV show in the detail view.
+             * @param {string} contentId The TMDB ID of the content.
+             * @param {string} contentType The type of content ('movie' or 'tv').
+             */
+            async function fetchAndDisplayContentDetails(contentId, contentType) {
+                showDetailView();
+
+                detailContentWrapper.innerHTML = '<div class="loading-spinner"></div>';
+
+                if (!TMDB_API_KEY || TMDB_API_KEY === 'YOUR_TMDB_API_KEY') {
+                    detailContentWrapper.innerHTML = `<p class="placeholder-message">TMDB API Key is missing or invalid. Cannot fetch content details.</p>`;
+                    console.error("TMDB API Key is missing or invalid.");
+                    return;
+                }
+
+                const url = `https://api.themoviedb.org/3/${contentType}/${contentId}?api_key=${TMDB_API_KEY}&append_to_response=credits,videos,recommendations`;
+
+                try {
+                    const response = await fetch(url);
+                    const content = await response.json();
+
+                    if (content.id) {
+                        content.media_type = contentType; // Ensure media_type is set for consistent rendering
+                        renderContentDetails(content);
+                        // Set background image for the detail page
+                        if (content.backdrop_path) {
+                            movieDetailView.style.backgroundImage = `url('${TMDB_BACKDROP_BASE_URL}${content.backdrop_path}')`;
+                        } else {
+                            movieDetailView.style.backgroundImage = 'none'; // No backdrop, clear any previous
+                        }
+                    } else {
+                        detailContentWrapper.innerHTML = `<p class="placeholder-message">Could not load details for this content.</p>`;
+                        console.error("Content details not found:", content);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching ${contentType} details for ID ${contentId}:`, error);
+                    detailContentWrapper.innerHTML = `<p class="placeholder-message">Failed to load content details. Please check your internet connection or try again later.`;
+                }
+            }
+
+            // --- Rendering Functions ---
+
+            /**
+             * Renders movie or TV show cards into the target grid.
+             * @param {Array} contentItems An array of movie or TV show objects from TMDB.
+             * @param {string|null} defaultContentType The default content type ('movie' or 'tv') if the items don't have media_type (e.g., from specific movie/tv endpoints). If null, it expects items to have a media_type.
+             * @param {HTMLElement} targetGrid The DOM element to append cards to.
+             */
+            function renderContentCards(contentItems, defaultContentType, targetGrid) {
+                contentItems.forEach(item => {
+                    // Determine content type for the card. Prioritize item.media_type if available.
+                    const cardContentType = item.media_type || defaultContentType;
+
+                    // Skip if content type is unknown or person (especially for multi-search)
+                    if (!cardContentType || cardContentType === 'person' || cardContentType === 'unknown') {
+                        return;
+                    }
+
+                    const title = item.title || item.name || 'Untitled';
+                    const releaseDate = item.release_date || item.first_air_date;
+                    const year = releaseDate ? releaseDate.substring(0, 4) : 'N/A';
+                    const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
+                    const posterPath = item.poster_path ? `${TMDB_IMAGE_BASE_URL}${item.poster_path}` : TMDB_POSTER_PLACEHOLDER;
+
+                    const contentCard = document.createElement('div');
+                    contentCard.classList.add('movie-card'); // Reusing movie-card class for consistent styling
+                    contentCard.dataset.contentId = item.id;
+                    contentCard.dataset.contentType = cardContentType; // Store actual content type
+
+                    contentCard.innerHTML = `
+                        <img src="${posterPath}" alt="${title} Poster" onerror="this.onerror=null;this.src='${TMDB_POSTER_PLACEHOLDER}';">
+                        <div class="info">
+                            <h3>${title}</h3>
+                            <div class="rating-year">
+                                <i class="fas fa-star"></i>
+                                <span>${rating}</span>
+                                <span>•</span>
+                                <span>${year}</span>
+                            </div>
+                        </div>
+                    `;
+                    targetGrid.appendChild(contentCard);
+                });
+            }
+
+            function displayLocalBooks(books, targetGrid, clearGrid = true) {
+                if (clearGrid) {
+                    targetGrid.innerHTML = '';
+                }
+
+                if (books.length === 0) {
+                    targetGrid.innerHTML = '<p class="placeholder-message">No books found for this category.</p>';
+                    return;
+                }
+
+                books.forEach(book => {
+                    const bookCard = document.createElement('div');
+                    bookCard.classList.add('movie-card');
+                    bookCard.dataset.contentType = 'book'; // Add type for local content
+
+                    const placeholderPoster = 'https://placehold.co/180x270/1a1a1a/e0e0e0?text=Book+Cover';
+
+                    bookCard.innerHTML = `
+                        <img src="${placeholderPoster}" alt="Book Cover" onerror="this.onerror=null;this.src='${placeholderPoster}';">
+                        <div class="info">
+                            <h3>${book.title}</h3>
+                            <div class="rating-year">
+                                <span>Book</span>
+                            </div>
+                        </div>
+                    `;
+                    targetGrid.appendChild(bookCard);
+                });
+            }
+
+            function renderContentDetails(content) {
+                const isMovie = content.media_type === 'movie';
+                const posterUrl = content.poster_path ? `${TMDB_IMAGE_BASE_URL}${content.poster_path}` : TMDB_DETAIL_POSTER_PLACEHOLDER;
+                const genres = content.genres && content.genres.length > 0 ? content.genres.map(g => g.name).join(', ') : 'N/A';
+                
+                let runtimeInfo = 'N/A';
+                if (isMovie && content.runtime) {
+                    runtimeInfo = `${content.runtime}m`;
+                } else if (!isMovie && content.episode_run_time && content.episode_run_time.length > 0) {
+                    runtimeInfo = `${content.episode_run_time[0]}m/episode`;
+                }
+
+                const year = content.release_date ? content.release_date.substring(0, 4) : (content.first_air_date ? content.first_air_date.substring(0, 4) : 'N/A');
+                const rating = content.vote_average ? content.vote_average.toFixed(1) : 'N/A';
+                const tagline = content.tagline ? `<p class="tagline">${content.tagline}</p>` : '';
+
+                const directors = isMovie && content.credits && content.credits.crew ? content.credits.crew.filter(c => c.job === 'Director').map(d => d.name).join(', ') : 'N/A';
+                const creators = !isMovie && content.created_by && content.created_by.length > 0 ? content.created_by.map(c => c.name).join(', ') : 'N/A';
+                const starring = content.credits && content.credits.cast ? content.credits.cast.slice(0, 10).map(a => a.name).join(', ') : 'N/A';
+
+                const youtubeTrailer = content.videos && content.videos.results.find(video => video.site === 'YouTube' && video.type === 'Trailer');
+                const trailerButtonHtml = youtubeTrailer ?
+                    `<button class="detail-action-button play-trailer-button" data-video-key="${youtubeTrailer.key}"><i class="fas fa-play"></i> Play Trailer</button>` :
+                    `<button class="detail-action-button play-trailer-button" disabled><i class="fas fa-play"></i> No Trailer</button>`;
+
+                // New: Season and Episode information for TV Shows
+                let seasonEpisodeInfo = '';
+                if (!isMovie) {
+                    const seasons = content.number_of_seasons;
+                    const episodes = content.number_of_episodes;
+                    if (seasons !== undefined && seasons !== null) {
+                        seasonEpisodeInfo += `<span>• ${seasons} Season${seasons === 1 ? '' : 's'}</span>`;
+                    }
+                    if (episodes !== undefined && episodes !== null) {
+                        if (seasonEpisodeInfo) seasonEpisodeInfo += ` `; // Add space if there's season info
+                        seasonEpisodeInfo += `<span>• ${episodes} Episode${episodes === 1 ? '' : 's'}</span>`;
+                    }
+                }
+
+
+                detailContentWrapper.innerHTML = `
+                    <div class="detail-header">
+                        <img src="${posterUrl}" alt="${content.title || content.name} Poster" class="detail-poster" onerror="this.onerror=null;this.src='${TMDB_DETAIL_POSTER_PLACEHOLDER}';">
+                        <div class="detail-info">
+                            <h1>${content.title || content.name}</h1>
+                            <div class="detail-meta">
+                                <span><i class="fas fa-star"></i> <span class="rating">${rating}</span></span>
+                                <span>• ${runtimeInfo}</span>
+                                <span>• ${year}</span>
+                                <span>• ${content.vote_average >= 7.0 ? 'PG-13' : 'PG'}</span>
+                                <span>• ${genres}</span>
+                                ${seasonEpisodeInfo} <!-- Insert season and episode info here -->
+                            </div>
+                            <p class="detail-plot">${content.overview || 'Plot summary not available.'}</p>
+                            <div class="detail-action-buttons">
+                                <button class="detail-action-button ${getLocalStorageList('myList').some(item => item.id === content.id && item.type === content.media_type) ? 'active' : ''}" data-action="myList" title="Add to List"><i class="${getLocalStorageList('myList').some(item => item.id === content.id && item.type === content.media_type) ? 'fas fa-check' : 'fas fa-list'}"></i></button>
+                                <button class="detail-action-button ${getLocalStorageList('favorites').some(item => item.id === content.id && item.type === content.media_type) ? 'active' : ''}" data-action="favorites" title="Favorite"><i class="${getLocalStorageList('favorites').some(item => item.id === content.id && item.type === content.media_type) ? 'fas fa-heart' : 'far fa-heart'}"></i></button>
+                                <button class="detail-action-button ${getLocalStorageList('bookmarks').some(item => item.id === content.id && item.type === content.media_type) ? 'active' : ''}" data-action="bookmarks" title="Bookmark"><i class="${getLocalStorageList('bookmarks').some(item => item.id === content.id && item.type === content.media_type) ? 'fas fa-bookmark' : 'far fa-bookmark'}"></i></button>
+                                ${trailerButtonHtml}
+                            </div>
+                            <div class="detail-cast-director">
+                                <p><strong>Starring:</strong> ${starring}</p>
+                                <p><strong>${isMovie ? 'Directed By:' : 'Created By:'}</strong> ${isMovie ? directors : creators}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="you-may-also-like-detail movie-listing-section you-may-also-like-section">
+                        <h2>You May Also Like</h2>
+                        <div id="detailYouMayAlsoLikeGrid">
+                            <!-- Recommendations for this specific content will be rendered here -->
+                        </div>
+                    </div>
+                `;
+
+                // Add event listeners to the new action buttons
+                detailContentWrapper.querySelectorAll('.detail-action-button').forEach(button => {
+                    const action = button.dataset.action;
+                    if (action) {
+                        button.addEventListener('click', (e) => {
+                            const isAdded = toggleLocalStorageItem(action, content.id, content.media_type); // Pass content.media_type
+                            let message = '';
+                            let iconClass = '';
+
+                            if (action === 'myList') {
+                                message = isAdded ? `Added "${content.title || content.name}" to your list!` : `Removed "${content.title || content.name}" from your list!`;
+                                iconClass = isAdded ? 'fas fa-check' : 'fas fa-list';
+                            } else if (action === 'favorites') {
+                                message = isAdded ? `Marked "${content.title || content.name}" as favorite!` : `Unmarked "${content.title || content.name}" as favorite!`;
+                                iconClass = isAdded ? 'fas fa-heart' : 'far fa-heart';
+                            } else if (action === 'bookmarks') {
+                                message = isAdded ? `Bookmarked "${content.title || content.name}"!` : `Unbookmarked "${content.title || content.name}"!`;
+                                iconClass = isAdded ? 'fas fa-bookmark' : 'far fa-bookmark';
+                            }
+                            e.currentTarget.querySelector('i').className = iconClass;
+                            e.currentTarget.classList.toggle('active', isAdded); // Toggle 'active' class
+                            showConfirmationMessage(message);
+                        });
+                    } else if (button.classList.contains('play-trailer-button') && button.dataset.videoKey) {
+                        button.addEventListener('click', () => {
+                            youtubeIframe.src = `https://www.youtube.com/embed/${button.dataset.videoKey}?autoplay=1`;
+                            trailerModal.style.display = 'flex';
+                        });
+                    }
+                });
+
+                const detailYouMayAlsoLikeGrid = document.getElementById('detailYouMayAlsoLikeGrid');
+                if (content.recommendations && content.recommendations.results.length > 0) {
+                    // Filter recommendations by the current content type for consistency
+                    const filteredRecommendations = content.recommendations.results.filter(rec => rec.media_type === content.media_type);
+                    renderContentCards(filteredRecommendations.slice(0, 8), content.media_type, detailYouMayAlsoLikeGrid);
+
+                    // IMPORTANT: Attach event listener to the newly rendered detailYouMayAlsoLikeGrid
+                    // This ensures clicking on these recommended contents works.
+                    detailYouMayAlsoLikeGrid.addEventListener('click', async (event) => {
+                        const contentCard = event.target.closest('.movie-card');
+                        if (contentCard && contentCard.dataset.contentId && contentCard.dataset.contentType) {
+                            const contentId = contentCard.dataset.contentId;
+                            const type = contentCard.dataset.contentType;
+                            await fetchAndDisplayContentDetails(contentId, type); // Recursively open new detail page
+                        }
+                    });
+
+                } else {
+                    detailYouMayAlsoLikeGrid.innerHTML = `<p class="placeholder-message">No recommendations found for this ${content.media_type}.</p>`;
+                }
+            }
+
+            // --- Utility Functions ---
+
+            function formatContentTitle(contentType, category) {
+                if (category === 'popular') {
+                    return `Popular ${contentType === 'movie' ? 'Movies' : 'TV Shows'}`;
+                }
+                const words = category.split('-');
+                const capitalizedWords = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+                // Handle specific TV show genre names if they differ significantly from key
+                if (contentType === 'tv') {
+                    if (category === 'action-adventure') return 'Action & Adventure TV Shows';
+                    if (category === 'sci-fi-fantasy') return 'Sci-Fi & Fantasy TV Shows';
+                    if (category === 'war-politics') return 'War & Politics TV Shows';
+                }
+                return `All ${capitalizedWords.join(' ')} ${contentType === 'movie' ? 'Movies' : 'TV Shows'}`;
+            }
+
+            async function initializeApp() {
+                // Initial load: Movies -> Popular
+                await fetchAndDisplayContent('movie', 'popular', movieGrid, true);
+                showListView();
+            }
+
+            initializeApp();
+        });
+
+        
+    </script>
+</body>
+</html>
